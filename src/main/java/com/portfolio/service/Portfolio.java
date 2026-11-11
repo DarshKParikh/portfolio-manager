@@ -3,6 +3,7 @@ package com.portfolio.service;
 
 import java.io.IOException;
 import java.math.BigDecimal;
+import java.math.MathContext;
 import java.nio.file.Path;
 import java.time.LocalDate;
 import java.util.ArrayList;
@@ -19,6 +20,9 @@ import com.portfolio.model.TransactionType;
 
 public final class Portfolio {
 
+    private static final MathContext MATH_CONTEXT =
+            MathContext.DECIMAL128;
+
     private final Map<String, BigDecimal> quantities =
             new HashMap<>();
 
@@ -27,6 +31,13 @@ public final class Portfolio {
 
     private final List<Transaction> transactions =
             new ArrayList<>();
+
+    // Weighted-average cost of shares currently held
+    private final Map<String, BigDecimal> averageCosts =
+            new HashMap<>();
+
+    // Profit or loss from completed sales
+    private BigDecimal realisedProfitLoss = BigDecimal.ZERO;
 
     // Buy an asset and record the transaction
     public void buy(Asset asset, BigDecimal quantity) {
@@ -81,19 +92,20 @@ public final class Portfolio {
         applyTransaction(transaction, asset);
     }
 
-    // Import transactions from a CSV file
+    // Import CSV transactions atomically
     public void importCsv(Path path) throws IOException {
 
         List<Transaction> imported =
                 TransactionCsvReader.read(path);
 
-        // Validate the entire batch using a temporary
-        // copy of the portfolio before changing anything.
         Portfolio preview = new Portfolio();
 
         preview.quantities.putAll(this.quantities);
         preview.assets.putAll(this.assets);
         preview.transactions.addAll(this.transactions);
+        preview.averageCosts.putAll(this.averageCosts);
+
+        preview.realisedProfitLoss = this.realisedProfitLoss;
 
         for (Transaction transaction : imported) {
             preview.applyTransaction(
@@ -105,8 +117,7 @@ public final class Portfolio {
             );
         }
 
-        // All transactions passed validation.
-        // Apply the resulting state atomically.
+        // Commit the changes only after every row succeeds
         quantities.clear();
         quantities.putAll(preview.quantities);
 
@@ -115,32 +126,61 @@ public final class Portfolio {
 
         transactions.clear();
         transactions.addAll(preview.transactions);
+
+        averageCosts.clear();
+        averageCosts.putAll(preview.averageCosts);
+
+        realisedProfitLoss = preview.realisedProfitLoss;
     }
 
-    // Apply a transaction to portfolio holdings
+    // Apply a trade and update cost basis
     private void applyTransaction(
             Transaction transaction,
             Asset asset) {
 
         String symbol = transaction.getSymbol();
         BigDecimal quantity = transaction.getQuantity();
+        BigDecimal price = transaction.getPrice();
 
         if (transaction.getType() == TransactionType.BUY) {
 
-            quantities.merge(
-                symbol,
-                quantity,
-                BigDecimal::add
-            );
+            BigDecimal oldQuantity =
+                    quantities.getOrDefault(
+                        symbol,
+                        BigDecimal.ZERO
+                    );
 
+            BigDecimal oldAverageCost =
+                    averageCosts.getOrDefault(
+                        symbol,
+                        BigDecimal.ZERO
+                    );
+
+            BigDecimal newQuantity =
+                    oldQuantity.add(quantity);
+
+            BigDecimal totalCost =
+                    oldQuantity.multiply(oldAverageCost)
+                        .add(quantity.multiply(price));
+
+            BigDecimal newAverageCost =
+                    totalCost.divide(
+                        newQuantity,
+                        MATH_CONTEXT
+                    );
+
+            quantities.put(symbol, newQuantity);
+            averageCosts.put(symbol, newAverageCost);
             assets.put(symbol, asset);
 
-        } else if (transaction.getType() == TransactionType.SELL) {
+        } else if (transaction.getType() ==
+                TransactionType.SELL) {
 
-            BigDecimal held = quantities.getOrDefault(
-                symbol,
-                BigDecimal.ZERO
-            );
+            BigDecimal held =
+                    quantities.getOrDefault(
+                        symbol,
+                        BigDecimal.ZERO
+                    );
 
             if (held.compareTo(quantity) < 0) {
                 throw new IllegalArgumentException(
@@ -148,11 +188,23 @@ public final class Portfolio {
                 );
             }
 
-            BigDecimal remaining = held.subtract(quantity);
+            BigDecimal averageCost =
+                    averageCosts.get(symbol);
+
+            BigDecimal saleProfit =
+                    price.subtract(averageCost)
+                         .multiply(quantity);
+
+            BigDecimal remaining =
+                    held.subtract(quantity);
+
+            realisedProfitLoss =
+                    realisedProfitLoss.add(saleProfit);
 
             if (remaining.signum() == 0) {
                 quantities.remove(symbol);
                 assets.remove(symbol);
+                averageCosts.remove(symbol);
             } else {
                 quantities.put(symbol, remaining);
                 assets.put(symbol, asset);
@@ -167,7 +219,7 @@ public final class Portfolio {
         transactions.add(transaction);
     }
 
-    // Update the price of an existing holding
+    // Update the latest market price
     public void updatePrice(Asset asset) {
         if (asset == null ||
                 !assets.containsKey(asset.symbol())) {
@@ -179,7 +231,7 @@ public final class Portfolio {
         assets.put(asset.symbol(), asset);
     }
 
-    // Calculate the total market value
+    // Total market value of current holdings
     public BigDecimal marketValue() {
         return quantities.entrySet()
                 .stream()
@@ -194,7 +246,45 @@ public final class Portfolio {
                 );
     }
 
-    // Return a read-only snapshot of positions
+    // Profit/loss from shares already sold
+    public BigDecimal realisedProfitLoss() {
+        return realisedProfitLoss;
+    }
+
+    // Profit/loss from shares still held
+    public BigDecimal unrealisedProfitLoss() {
+
+        BigDecimal total = BigDecimal.ZERO;
+
+        for (Map.Entry<String, BigDecimal> entry
+                : quantities.entrySet()) {
+
+            String symbol = entry.getKey();
+            BigDecimal quantity = entry.getValue();
+
+            BigDecimal marketPrice =
+                    assets.get(symbol).price();
+
+            BigDecimal averageCost =
+                    averageCosts.get(symbol);
+
+            BigDecimal profit =
+                    marketPrice.subtract(averageCost)
+                               .multiply(quantity);
+
+            total = total.add(profit);
+        }
+
+        return total;
+    }
+
+    // Combined realised and unrealised P&L
+    public BigDecimal totalProfitLoss() {
+        return realisedProfitLoss()
+                .add(unrealisedProfitLoss());
+    }
+
+    // Return a read-only snapshot of holdings
     public Map<String, BigDecimal> positions() {
         return Map.copyOf(quantities);
     }
@@ -204,7 +294,6 @@ public final class Portfolio {
         return List.copyOf(transactions);
     }
 
-    // Validate share quantities
     private static void validateQuantity(
             BigDecimal quantity) {
 
