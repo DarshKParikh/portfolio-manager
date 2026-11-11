@@ -3,53 +3,81 @@ package com.portfolio.model;
 
 import java.math.BigDecimal;
 import java.time.LocalDate;
+import java.util.Locale;
+import java.util.Objects;
 
-public class Transaction {
+public final class Transaction {
 
-    private String symbol;
-    private TransactionType type;
-    private int quantity;
-    private BigDecimal price;
-    private LocalDate date;
+    // Fields
+    private final String symbol;
+    private final TransactionType type;
+    private final int quantity;
+    private final BigDecimal price;
+    private final LocalDate date;
 
+    // Constructor
+    public Transaction(
+            String symbol,
+            TransactionType type,
+            int quantity,
+            BigDecimal price,
+            LocalDate date) {
 
-public Transaction(
-        String symbol,
-        TransactionType type,
-        int quantity,
-        BigDecimal price,
-        LocalDate date) {
+        // Validate stock symbol
+        if (symbol == null || symbol.isBlank()) {
+            throw new IllegalArgumentException(
+                "Stock symbol cannot be empty"
+            );
+        }
 
-    if (quantity <= 0) {
-        throw new IllegalArgumentException(
-            "Quantity must be positive"
+        // Validate quantity
+        if (quantity <= 0) {
+            throw new IllegalArgumentException(
+                "Quantity must be positive"
+            );
+        }
+
+        // Validate price
+        if (price == null || price.signum() <= 0) {
+            throw new IllegalArgumentException(
+                "Price must be positive"
+            );
+        }
+
+        // Initialise fields
+        this.symbol = symbol.trim()
+                            .toUpperCase(Locale.ROOT);
+
+        this.type = Objects.requireNonNull(
+            type, "Transaction type cannot be null"
+        );
+
+        this.quantity = quantity;
+        this.price = price;
+
+        this.date = Objects.requireNonNull(
+            date, "Transaction date cannot be null"
         );
     }
 
-
-    if (price == null || price.signum() <= 0) {
-        throw new IllegalArgumentException(
-            "Price must be positive"
-        );
+    // Getters
+    public String getSymbol() {
+        return symbol;
     }
 
-
-    if (symbol == null || symbol.isBlank()) {
-        throw new IllegalArgumentException(
-            "Stock symbol cannot be empty"
-        );
+    public TransactionType getType() {
+        return type;
     }
 
+    public int getQuantity() {
+        return quantity;
+    }
 
+    public BigDecimal getPrice() {
+        return price;
+    }
 
-        
-    this.symbol = symbol.trim().toUpperCase(
-        java.util.Locale.ROOT);
-    this.type = type;
-    this.quantity = quantity;
-    this.price = price;
-    this.date = date;
-}
-
-
+    public LocalDate getDate() {
+        return date;
+    }
 }
