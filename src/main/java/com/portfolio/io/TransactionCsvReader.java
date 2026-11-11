@@ -1,4 +1,3 @@
-
 package com.portfolio.io;
 
 import java.io.BufferedReader;
@@ -7,6 +6,7 @@ import java.math.BigDecimal;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.time.LocalDate;
+import java.time.format.DateTimeParseException;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Locale;
@@ -17,7 +17,7 @@ import com.portfolio.model.TransactionType;
 public final class TransactionCsvReader {
 
     private TransactionCsvReader() {
-        // Utility class: no instances needed
+        // Prevent creating instances of this utility class
     }
 
     public static List<Transaction> read(Path path)
@@ -29,8 +29,7 @@ public final class TransactionCsvReader {
             );
         }
 
-        List<Transaction> transactions =
-                new ArrayList<>();
+        List<Transaction> transactions = new ArrayList<>();
 
         try (BufferedReader reader =
                      Files.newBufferedReader(path)) {
@@ -94,7 +93,9 @@ public final class TransactionCsvReader {
 
                     transactions.add(transaction);
 
-                } catch (IllegalArgumentException e) {
+                } catch (IllegalArgumentException
+                         | DateTimeParseException e) {
+
                     throw new IllegalArgumentException(
                         "Invalid transaction on line "
                         + lineNumber + ": "
