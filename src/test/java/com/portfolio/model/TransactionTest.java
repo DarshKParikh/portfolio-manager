@@ -1,3 +1,4 @@
+
 package com.portfolio.model;
 
 import java.math.BigDecimal;
@@ -7,7 +8,6 @@ import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 import org.junit.jupiter.api.Test;
 
-
 class TransactionTest {
 
     // Test 1: Valid transaction
@@ -16,14 +16,18 @@ class TransactionTest {
         Transaction transaction = new Transaction(
             "AAPL",
             TransactionType.BUY,
-            10,
+            new BigDecimal("10"),
             new BigDecimal("150.00"),
             LocalDate.of(2026, 1, 10)
         );
 
         assertEquals("AAPL", transaction.getSymbol());
         assertEquals(TransactionType.BUY, transaction.getType());
-        assertEquals(10, transaction.getQuantity());
+        assertEquals(
+            0,
+            new BigDecimal("10")
+                .compareTo(transaction.getQuantity())
+        );
         assertEquals(
             new BigDecimal("150.00"),
             transaction.getPrice()
@@ -42,7 +46,7 @@ class TransactionTest {
             () -> new Transaction(
                 "AAPL",
                 TransactionType.BUY,
-                -5,
+                new BigDecimal("-5"),
                 new BigDecimal("150.00"),
                 LocalDate.now()
             )
@@ -57,7 +61,7 @@ class TransactionTest {
             () -> new Transaction(
                 "AAPL",
                 TransactionType.BUY,
-                0,
+                BigDecimal.ZERO,
                 new BigDecimal("150.00"),
                 LocalDate.now()
             )
@@ -72,7 +76,7 @@ class TransactionTest {
             () -> new Transaction(
                 "AAPL",
                 TransactionType.BUY,
-                10,
+                new BigDecimal("10"),
                 new BigDecimal("-50.00"),
                 LocalDate.now()
             )
@@ -87,7 +91,7 @@ class TransactionTest {
             () -> new Transaction(
                 "AAPL",
                 TransactionType.BUY,
-                10,
+                new BigDecimal("10"),
                 BigDecimal.ZERO,
                 LocalDate.now()
             )
@@ -102,7 +106,7 @@ class TransactionTest {
             () -> new Transaction(
                 "",
                 TransactionType.BUY,
-                10,
+                new BigDecimal("10"),
                 new BigDecimal("150.00"),
                 LocalDate.now()
             )
@@ -117,7 +121,7 @@ class TransactionTest {
             () -> new Transaction(
                 null,
                 TransactionType.BUY,
-                10,
+                new BigDecimal("10"),
                 new BigDecimal("150.00"),
                 LocalDate.now()
             )
@@ -130,7 +134,7 @@ class TransactionTest {
         Transaction transaction = new Transaction(
             " aapl ",
             TransactionType.BUY,
-            10,
+            new BigDecimal("10"),
             new BigDecimal("150.00"),
             LocalDate.now()
         );
@@ -146,7 +150,7 @@ class TransactionTest {
             () -> new Transaction(
                 "AAPL",
                 null,
-                10,
+                new BigDecimal("10"),
                 new BigDecimal("150.00"),
                 LocalDate.now()
             )
@@ -161,7 +165,7 @@ class TransactionTest {
             () -> new Transaction(
                 "AAPL",
                 TransactionType.BUY,
-                10,
+                new BigDecimal("10"),
                 new BigDecimal("150.00"),
                 null
             )
@@ -176,7 +180,7 @@ class TransactionTest {
             () -> new Transaction(
                 "AAPL",
                 TransactionType.BUY,
-                10,
+                new BigDecimal("10"),
                 null,
                 LocalDate.now()
             )
@@ -191,10 +195,28 @@ class TransactionTest {
             () -> new Transaction(
                 "   ",
                 TransactionType.BUY,
-                10,
+                new BigDecimal("10"),
                 new BigDecimal("150.00"),
                 LocalDate.now()
             )
+        );
+    }
+
+    // Test 13: Support fractional shares
+    @Test
+    void supportsFractionalShares() {
+        Transaction transaction = new Transaction(
+            "AAPL",
+            TransactionType.BUY,
+            new BigDecimal("2.5"),
+            new BigDecimal("150.00"),
+            LocalDate.of(2026, 1, 10)
+        );
+
+        assertEquals(
+            0,
+            new BigDecimal("2.5")
+                .compareTo(transaction.getQuantity())
         );
     }
 }
