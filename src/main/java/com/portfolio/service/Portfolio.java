@@ -1,39 +1,34 @@
+
 package com.portfolio.service;
 
+import java.io.IOException;
 import java.math.BigDecimal;
+import java.nio.file.Path;
 import java.time.LocalDate;
 import java.util.ArrayList;
-import java.util.Collections;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Locale;
 import java.util.Map;
 
+import com.portfolio.io.TransactionCsvReader;
 import com.portfolio.model.Asset;
+import com.portfolio.model.Stock;
 import com.portfolio.model.Transaction;
 import com.portfolio.model.TransactionType;
 
-/**
- * In-memory portfolio with transaction history.
- * Market prices are supplied explicitly.
- */
 public final class Portfolio {
 
-    // Current holdings
     private final Map<String, BigDecimal> quantities =
             new HashMap<>();
 
-    // Asset information and latest prices
     private final Map<String, Asset> assets =
             new HashMap<>();
 
-    // Record of successful transactions
     private final List<Transaction> transactions =
             new ArrayList<>();
 
-    /**
-     * Buy an asset and record the transaction.
-     */
+    // Buy an asset and record the transaction
     public void buy(Asset asset, BigDecimal quantity) {
         validateQuantity(quantity);
 
@@ -43,7 +38,6 @@ public final class Portfolio {
             );
         }
 
-        // Create transaction before modifying holdings
         Transaction transaction = new Transaction(
             asset.symbol(),
             TransactionType.BUY,
@@ -52,22 +46,10 @@ public final class Portfolio {
             LocalDate.now()
         );
 
-        // Update holdings
-        assets.put(asset.symbol(), asset);
-
-        quantities.merge(
-            asset.symbol(),
-            quantity,
-            BigDecimal::add
-        );
-
-        // Record successful purchase
-        transactions.add(transaction);
+        applyTransaction(transaction, asset);
     }
 
-    /**
-     * Sell an asset and record the transaction.
-     */
+    // Sell an asset and record the transaction
     public void sell(String symbol, BigDecimal quantity) {
         validateQuantity(quantity);
 
@@ -80,19 +62,13 @@ public final class Portfolio {
         String key = symbol.trim()
                 .toUpperCase(Locale.ROOT);
 
-        BigDecimal held = quantities.getOrDefault(
-            key, BigDecimal.ZERO
-        );
+        Asset asset = assets.get(key);
 
-        // Reject sales exceeding current holdings
-        if (held.compareTo(quantity) < 0) {
+        if (asset == null) {
             throw new IllegalArgumentException(
                 "Insufficient holdings"
             );
         }
-
-        // Use current stored price as execution price
-        Asset asset = assets.get(key);
 
         Transaction transaction = new Transaction(
             key,
@@ -102,23 +78,96 @@ public final class Portfolio {
             LocalDate.now()
         );
 
-        // Update holdings
-        BigDecimal remaining = held.subtract(quantity);
+        applyTransaction(transaction, asset);
+    }
 
-        if (remaining.signum() == 0) {
-            quantities.remove(key);
-            assets.remove(key);
-        } else {
-            quantities.put(key, remaining);
+    // Import transactions from a CSV file
+    public void importCsv(Path path) throws IOException {
+
+        List<Transaction> imported =
+                TransactionCsvReader.read(path);
+
+        // Validate the entire batch using a temporary
+        // copy of the portfolio before changing anything.
+        Portfolio preview = new Portfolio();
+
+        preview.quantities.putAll(this.quantities);
+        preview.assets.putAll(this.assets);
+        preview.transactions.addAll(this.transactions);
+
+        for (Transaction transaction : imported) {
+            preview.applyTransaction(
+                transaction,
+                new Stock(
+                    transaction.getSymbol(),
+                    transaction.getPrice()
+                )
+            );
         }
 
-        // Record successful sale
+        // All transactions passed validation.
+        // Apply the resulting state atomically.
+        quantities.clear();
+        quantities.putAll(preview.quantities);
+
+        assets.clear();
+        assets.putAll(preview.assets);
+
+        transactions.clear();
+        transactions.addAll(preview.transactions);
+    }
+
+    // Apply a transaction to portfolio holdings
+    private void applyTransaction(
+            Transaction transaction,
+            Asset asset) {
+
+        String symbol = transaction.getSymbol();
+        BigDecimal quantity = transaction.getQuantity();
+
+        if (transaction.getType() == TransactionType.BUY) {
+
+            quantities.merge(
+                symbol,
+                quantity,
+                BigDecimal::add
+            );
+
+            assets.put(symbol, asset);
+
+        } else if (transaction.getType() == TransactionType.SELL) {
+
+            BigDecimal held = quantities.getOrDefault(
+                symbol,
+                BigDecimal.ZERO
+            );
+
+            if (held.compareTo(quantity) < 0) {
+                throw new IllegalArgumentException(
+                    "Insufficient holdings for " + symbol
+                );
+            }
+
+            BigDecimal remaining = held.subtract(quantity);
+
+            if (remaining.signum() == 0) {
+                quantities.remove(symbol);
+                assets.remove(symbol);
+            } else {
+                quantities.put(symbol, remaining);
+                assets.put(symbol, asset);
+            }
+
+        } else {
+            throw new IllegalArgumentException(
+                "Unsupported transaction type"
+            );
+        }
+
         transactions.add(transaction);
     }
 
-    /**
-     * Update the market price of an existing asset.
-     */
+    // Update the price of an existing holding
     public void updatePrice(Asset asset) {
         if (asset == null ||
                 !assets.containsKey(asset.symbol())) {
@@ -130,9 +179,7 @@ public final class Portfolio {
         assets.put(asset.symbol(), asset);
     }
 
-    /**
-     * Calculate total portfolio market value.
-     */
+    // Calculate the total market value
     public BigDecimal marketValue() {
         return quantities.entrySet()
                 .stream()
@@ -147,25 +194,17 @@ public final class Portfolio {
                 );
     }
 
-    /**
-     * Return a read-only snapshot of holdings.
-     */
+    // Return a read-only snapshot of positions
     public Map<String, BigDecimal> positions() {
-        return Collections.unmodifiableMap(
-            new HashMap<>(quantities)
-        );
+        return Map.copyOf(quantities);
     }
 
-    /**
-     * Return a read-only snapshot of transaction history.
-     */
+    // Return a read-only snapshot of transactions
     public List<Transaction> getTransactions() {
         return List.copyOf(transactions);
     }
 
-    /**
-     * Validate positive quantities.
-     */
+    // Validate share quantities
     private static void validateQuantity(
             BigDecimal quantity) {
 
