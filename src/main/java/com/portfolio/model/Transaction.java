@@ -26,7 +26,25 @@ public Transaction(
         );
     }
 
-    this.symbol = symbol;
+
+    if (price == null || price.signum() <= 0) {
+        throw new IllegalArgumentException(
+            "Price must be positive"
+        );
+    }
+
+
+    if (symbol == null || symbol.isBlank()) {
+        throw new IllegalArgumentException(
+            "Stock symbol cannot be empty"
+        );
+    }
+
+
+
+        
+    this.symbol = symbol.trim().toUpperCase(
+        java.util.Locale.ROOT);
     this.type = type;
     this.quantity = quantity;
     this.price = price;
