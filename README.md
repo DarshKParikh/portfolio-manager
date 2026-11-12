@@ -1,23 +1,23 @@
-# Portfolio Manager
+# Java Portfolio Manager
 
-A command-line investment portfolio management application built in Java. The application allows users to manage stock holdings, record trades, calculate portfolio valuations and analyse investment profit and loss.
+A Java-based investment portfolio management application for tracking stock holdings, recording transactions, calculating portfolio valuations and analysing realised and unrealised profit and loss.
 
-This project was developed to explore financial software engineering, object-oriented design, financial data processing and automated testing.
+Built to explore financial software engineering, object-oriented design, financial data processing and automated testing.
 
 ## Features
 
-- Buy and sell stocks with support for fractional shares.
-- Track current holdings and complete transaction history.
+- Buy and sell stocks, including fractional shares.
+- Track portfolio holdings and transaction history.
 - Calculate total portfolio market value.
 - Calculate realised and unrealised profit and loss using weighted-average cost basis.
 - Update asset market prices manually.
 - Import historical transactions from CSV files.
 - Export transaction history to CSV files.
-- Validate trade quantities, prices and available holdings.
+- Validate transaction quantities, prices and available holdings.
 - Process CSV imports atomically to prevent partial updates when invalid transactions are encountered.
 - Interactive command-line interface with input validation and error handling.
 
-## Technologies
+## Tech Stack
 
 | Technology | Purpose |
 |------------|---------|
@@ -31,9 +31,9 @@ This project was developed to explore financial software engineering, object-ori
 ## Project Structure
 
 ```text
-java-portfolio-manager/
-├── pom.xml
+portfolio-manager/
 ├── README.md
+├── pom.xml
 ├── transactions.csv
 └── src/
     ├── main/java/com/portfolio/
@@ -67,12 +67,12 @@ java-portfolio-manager/
 
 The application separates user interaction, financial business logic, domain models and file processing.
 
-- **App:** Handles the command-line interface, user input and output.
-- **Model:** Defines assets, stocks, bonds and immutable transaction records.
+- **App:** Handles the interactive CLI, user input and output.
+- **Model:** Defines assets, stocks, bonds and immutable transactions.
 - **Service:** Manages holdings, applies transactions and performs financial calculations.
 - **IO:** Handles CSV transaction import and export.
 
-This separation makes the financial logic independently testable and allows the application to be extended without tightly coupling it to the user interface.
+This separation makes the financial logic independently testable and allows new functionality to be added without tightly coupling it to the user interface.
 
 ## Getting Started
 
@@ -81,9 +81,14 @@ This separation makes the financial logic independently testable and allows the 
 - Java 17 or later
 - Apache Maven
 
-### Build the Project
+### Clone the Repository
 
-Clone this repository and navigate to the project directory.
+```bash
+git clone https://github.com/DarshKParikh/portfolio-manager.git
+cd portfolio-manager
+```
+
+### Build the Project
 
 ```bash
 mvn clean package
@@ -95,7 +100,7 @@ mvn clean package
 java -cp target/classes com.portfolio.app.Main
 ```
 
-The application displays an interactive menu:
+The application displays the following interactive menu:
 
 ```text
 ====================================
@@ -116,9 +121,9 @@ The application displays an interactive menu:
 
 ## Example Usage
 
-### Import Transactions
+### Import Sample Transactions
 
-The repository includes a sample `transactions.csv` file.
+The repository includes a sample `transactions.csv` file:
 
 ```csv
 symbol,type,quantity,price,date
@@ -127,7 +132,7 @@ MSFT,BUY,2.5,420.00,2026-01-16
 AAPL,SELL,3,155.00,2026-01-20
 ```
 
-Select option 7 and enter `transactions.csv` to import these transactions.
+Select option 7 and enter `transactions.csv` to import the sample trades into an empty portfolio.
 
 ### View Holdings
 
@@ -159,7 +164,7 @@ The example uses illustrative financial data rather than live market prices.
 
 ### Market Value
 
-Portfolio market value is calculated as the sum of each holding's quantity multiplied by its current market price.
+The total market value is the sum of each holding's quantity multiplied by its current market price.
 
 ```text
 Market Value = Sum(Quantity × Current Price)
@@ -217,7 +222,7 @@ The application includes several safeguards:
 
 ## Testing
 
-The project includes automated JUnit 5 tests covering:
+The project includes automated JUnit 5 unit and integration tests covering:
 
 - Transaction validation.
 - Portfolio holdings and market valuation.
@@ -227,7 +232,7 @@ The project includes automated JUnit 5 tests covering:
 - CSV import and export.
 - CSV round-trip data preservation.
 - Atomic import rollback.
-- End-to-end command-line workflows and error handling.
+- End-to-end CLI workflows and error handling.
 
 Run the full test suite:
 
@@ -244,12 +249,13 @@ mvn -Dtest=MainTest test
 ## Current Limitations
 
 - Market prices are entered manually rather than retrieved from a live market data provider.
-- The CLI currently supports stock trading; bond models exist but are not exposed through the CLI.
-- The application assumes a single currency and does not perform currency conversion.
+- The CLI currently supports stocks; bond models exist but are not exposed through the CLI.
+- The application assumes a single currency.
 - Transaction fees, dividends and taxes are not included in profit and loss calculations.
 - Portfolio data is held in memory during each session.
+- Trade prices update the stored market price.
 - CSV exports preserve transaction history but not separate manual market price updates.
-- CSV imports append transactions to the portfolio and do not automatically detect duplicate trades.
+- CSV imports append transactions and do not automatically detect duplicate trades.
 - CSV processing supports a fixed five-column format rather than general quoted CSV fields.
 
 ## Future Improvements
@@ -258,6 +264,7 @@ mvn -Dtest=MainTest test
 - Integration with a market data API.
 - Multi-currency portfolio support.
 - Portfolio allocation and performance analytics.
+- Separation of trade execution prices from market prices.
 - A graphical or web-based user interface.
 
 ## Author
@@ -266,4 +273,4 @@ Darsh Parikh
 
 Computer Science student at King's College London.
 
-GitHub: https://github.com/DarshKParikh
+[GitHub Profile](https://github.com/DarshKParikh)
