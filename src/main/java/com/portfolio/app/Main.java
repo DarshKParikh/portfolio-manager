@@ -1,11 +1,15 @@
 package com.portfolio.app;
 
+import java.io.IOException;
 import java.math.BigDecimal;
+import java.nio.file.Files;
+import java.nio.file.Path;
 import java.util.List;
 import java.util.Locale;
 import java.util.Map;
 import java.util.Scanner;
 
+import com.portfolio.io.TransactionCsvWriter;
 import com.portfolio.model.Stock;
 import com.portfolio.model.Transaction;
 import com.portfolio.service.Portfolio;
@@ -70,14 +74,14 @@ public final class Main {
                             break;
 
                         case "7":
-                            System.out.println(
-                                "CSV import coming soon."
+                            importTransactions(
+                                portfolio, scanner
                             );
                             break;
 
                         case "8":
-                            System.out.println(
-                                "CSV export coming soon."
+                            exportTransactions(
+                                portfolio, scanner
                             );
                             break;
 
@@ -105,6 +109,12 @@ public final class Main {
 
                     System.out.println(
                         "Error: " + e.getMessage()
+                    );
+
+                } catch (IOException e) {
+
+                    System.out.println(
+                        "File error: " + e.getMessage()
                     );
                 }
             }
@@ -185,7 +195,6 @@ public final class Main {
         );
     }
 
-    // NEW: Update the market price of a holding
     private static void updateAssetPrice(
             Portfolio portfolio,
             Scanner scanner) {
@@ -211,7 +220,81 @@ public final class Main {
         );
     }
 
-    // NEW: Display all recorded transactions
+    // NEW: Import transactions from a CSV file
+    private static void importTransactions(
+            Portfolio portfolio,
+            Scanner scanner) throws IOException {
+
+        System.out.println();
+        System.out.println("--- Import Transactions ---");
+
+        Path path = readPath(
+            scanner,
+            "Enter CSV file path: "
+        );
+
+        int previousCount =
+                portfolio.getTransactions().size();
+
+        portfolio.importCsv(path);
+
+        int importedCount =
+                portfolio.getTransactions().size()
+                - previousCount;
+
+        System.out.println(
+            "Successfully imported " +
+            importedCount + " transactions."
+        );
+    }
+
+    // NEW: Export transaction history to a CSV file
+    private static void exportTransactions(
+            Portfolio portfolio,
+            Scanner scanner) throws IOException {
+
+        System.out.println();
+        System.out.println("--- Export Transactions ---");
+
+        Path path = readPath(
+            scanner,
+            "Enter destination file path: "
+        );
+
+        // Prevent accidental overwriting
+        if (Files.exists(path)) {
+
+            String confirmation = readInput(
+                scanner,
+                "File already exists. Overwrite? (y/n): "
+            );
+
+            if (!confirmation.equalsIgnoreCase("y")) {
+
+                System.out.println("Export cancelled.");
+                return;
+            }
+        }
+
+        List<Transaction> transactions =
+                portfolio.getTransactions();
+
+        TransactionCsvWriter.write(
+            path,
+            transactions
+        );
+
+        System.out.println(
+            "Successfully exported " +
+            transactions.size() + " transactions."
+        );
+
+        System.out.println(
+            "Saved to: " +
+            path.toAbsolutePath().normalize()
+        );
+    }
+
     private static void viewTransactionHistory(
             Portfolio portfolio) {
 
@@ -256,6 +339,7 @@ public final class Main {
         }
 
         System.out.println();
+
         System.out.println(
             "Total transactions: " +
             transactions.size()
@@ -306,6 +390,23 @@ public final class Main {
         }
 
         return value;
+    }
+
+    // NEW: Read and validate a file path
+    private static Path readPath(
+            Scanner scanner,
+            String prompt) {
+
+        String input = readInput(scanner, prompt);
+
+        if (input.isBlank()) {
+
+            throw new IllegalArgumentException(
+                "File path is required."
+            );
+        }
+
+        return Path.of(input);
     }
 
     private static String readInput(

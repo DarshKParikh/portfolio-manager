@@ -1,0 +1,4 @@
+symbol,type,quantity,price,date
+AAPL,BUY,10,150.00,2026-01-15
+MSFT,BUY,2.5,420.00,2026-01-16
+AAPL,SELL,3,155.00,2026-01-20
