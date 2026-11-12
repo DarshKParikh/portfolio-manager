@@ -1,9 +1,11 @@
 package com.portfolio.app;
 
 import java.math.BigDecimal;
+import java.util.Locale;
 import java.util.Map;
 import java.util.Scanner;
 
+import com.portfolio.model.Stock;
 import com.portfolio.service.Portfolio;
 
 public final class Main {
@@ -35,68 +37,73 @@ public final class Main {
 
                 String choice = scanner.nextLine().trim();
 
-                switch (choice) {
+                try {
 
-                    case "1":
-                        System.out.println(
-                            "Buy functionality coming soon."
-                        );
-                        break;
+                    switch (choice) {
 
-                    case "2":
-                        System.out.println(
-                            "Sell functionality coming soon."
-                        );
-                        break;
+                        case "1":
+                            buyAsset(portfolio, scanner);
+                            break;
 
-                    case "3":
-                        viewHoldings(portfolio);
-                        break;
+                        case "2":
+                            sellAsset(portfolio, scanner);
+                            break;
 
-                    case "4":
-                        viewPortfolioValue(portfolio);
-                        break;
+                        case "3":
+                            viewHoldings(portfolio);
+                            break;
 
-                    case "5":
-                        viewProfitLoss(portfolio);
-                        break;
+                        case "4":
+                            viewPortfolioValue(portfolio);
+                            break;
 
-                    case "6":
-                        System.out.println(
-                            "Price updates coming soon."
-                        );
-                        break;
+                        case "5":
+                            viewProfitLoss(portfolio);
+                            break;
 
-                    case "7":
-                        System.out.println(
-                            "CSV import coming soon."
-                        );
-                        break;
+                        case "6":
+                            System.out.println(
+                                "Price updates coming soon."
+                            );
+                            break;
 
-                    case "8":
-                        System.out.println(
-                            "CSV export coming soon."
-                        );
-                        break;
+                        case "7":
+                            System.out.println(
+                                "CSV import coming soon."
+                            );
+                            break;
 
-                    case "9":
-                        System.out.println(
-                            "Transaction history coming soon."
-                        );
-                        break;
+                        case "8":
+                            System.out.println(
+                                "CSV export coming soon."
+                            );
+                            break;
 
-                    case "0":
-                        running = false;
+                        case "9":
+                            System.out.println(
+                                "Transaction history coming soon."
+                            );
+                            break;
 
-                        System.out.println(
-                            "Thank you for using Portfolio Manager!"
-                        );
-                        break;
+                        case "0":
+                            running = false;
 
-                    default:
-                        System.out.println(
-                            "Invalid choice. Please try again."
-                        );
+                            System.out.println(
+                                "Thank you for using Portfolio Manager!"
+                            );
+                            break;
+
+                        default:
+                            System.out.println(
+                                "Invalid choice. Please try again."
+                            );
+                    }
+
+                } catch (IllegalArgumentException e) {
+
+                    System.out.println(
+                        "Error: " + e.getMessage()
+                    );
                 }
             }
         }
@@ -121,6 +128,125 @@ public final class Main {
         System.out.println("0. Exit");
 
         System.out.println();
+    }
+
+    // Buy a stock using terminal input
+    private static void buyAsset(
+            Portfolio portfolio,
+            Scanner scanner) {
+
+        System.out.println();
+        System.out.println("--- Buy an Asset ---");
+
+        String symbol = readSymbol(scanner);
+
+        BigDecimal quantity = readPositiveDecimal(
+            scanner,
+            "Enter quantity: "
+        );
+
+        BigDecimal price = readPositiveDecimal(
+            scanner,
+            "Enter price per share: "
+        );
+
+        Stock stock = new Stock(symbol, price);
+
+        portfolio.buy(stock, quantity);
+
+        System.out.println(
+            "Successfully bought " +
+            quantity.toPlainString() +
+            " units of " + symbol + "."
+        );
+    }
+
+    // Sell an existing holding using terminal input
+    private static void sellAsset(
+            Portfolio portfolio,
+            Scanner scanner) {
+
+        System.out.println();
+        System.out.println("--- Sell an Asset ---");
+
+        String symbol = readSymbol(scanner);
+
+        BigDecimal quantity = readPositiveDecimal(
+            scanner,
+            "Enter quantity: "
+        );
+
+        portfolio.sell(symbol, quantity);
+
+        System.out.println(
+            "Successfully sold " +
+            quantity.toPlainString() +
+            " units of " + symbol + "."
+        );
+    }
+
+    // Read and normalise a stock symbol
+    private static String readSymbol(Scanner scanner) {
+
+        String symbol = readInput(
+            scanner,
+            "Enter stock symbol: "
+        ).toUpperCase(Locale.ROOT);
+
+        if (symbol.isBlank()) {
+            throw new IllegalArgumentException(
+                "Stock symbol is required."
+            );
+        }
+
+        return symbol;
+    }
+
+    // Read a positive financial number
+    private static BigDecimal readPositiveDecimal(
+            Scanner scanner,
+            String prompt) {
+
+        String input = readInput(scanner, prompt);
+
+        BigDecimal value;
+
+        try {
+
+            value = new BigDecimal(input);
+
+        } catch (NumberFormatException e) {
+
+            throw new IllegalArgumentException(
+                "Please enter a valid number."
+            );
+        }
+
+        if (value.signum() <= 0) {
+
+            throw new IllegalArgumentException(
+                "Value must be greater than zero."
+            );
+        }
+
+        return value;
+    }
+
+    // Read input safely, including end-of-input
+    private static String readInput(
+            Scanner scanner,
+            String prompt) {
+
+        System.out.print(prompt);
+
+        if (!scanner.hasNextLine()) {
+
+            throw new IllegalArgumentException(
+                "No input provided."
+            );
+        }
+
+        return scanner.nextLine().trim();
     }
 
     private static void viewHoldings(Portfolio portfolio) {
