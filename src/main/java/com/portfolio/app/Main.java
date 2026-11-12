@@ -1,11 +1,13 @@
 package com.portfolio.app;
 
 import java.math.BigDecimal;
+import java.util.List;
 import java.util.Locale;
 import java.util.Map;
 import java.util.Scanner;
 
 import com.portfolio.model.Stock;
+import com.portfolio.model.Transaction;
 import com.portfolio.service.Portfolio;
 
 public final class Main {
@@ -62,8 +64,8 @@ public final class Main {
                             break;
 
                         case "6":
-                            System.out.println(
-                                "Price updates coming soon."
+                            updateAssetPrice(
+                                portfolio, scanner
                             );
                             break;
 
@@ -80,8 +82,8 @@ public final class Main {
                             break;
 
                         case "9":
-                            System.out.println(
-                                "Transaction history coming soon."
+                            viewTransactionHistory(
+                                portfolio
                             );
                             break;
 
@@ -130,7 +132,6 @@ public final class Main {
         System.out.println();
     }
 
-    // Buy a stock using terminal input
     private static void buyAsset(
             Portfolio portfolio,
             Scanner scanner) {
@@ -161,7 +162,6 @@ public final class Main {
         );
     }
 
-    // Sell an existing holding using terminal input
     private static void sellAsset(
             Portfolio portfolio,
             Scanner scanner) {
@@ -185,7 +185,83 @@ public final class Main {
         );
     }
 
-    // Read and normalise a stock symbol
+    // NEW: Update the market price of a holding
+    private static void updateAssetPrice(
+            Portfolio portfolio,
+            Scanner scanner) {
+
+        System.out.println();
+        System.out.println("--- Update Asset Price ---");
+
+        String symbol = readSymbol(scanner);
+
+        BigDecimal newPrice = readPositiveDecimal(
+            scanner,
+            "Enter new price: "
+        );
+
+        portfolio.updatePrice(
+            new Stock(symbol, newPrice)
+        );
+
+        System.out.println(
+            "Successfully updated " +
+            symbol + " price to " +
+            newPrice.toPlainString() + "."
+        );
+    }
+
+    // NEW: Display all recorded transactions
+    private static void viewTransactionHistory(
+            Portfolio portfolio) {
+
+        List<Transaction> transactions =
+                portfolio.getTransactions();
+
+        System.out.println();
+        System.out.println("--- Transaction History ---");
+
+        if (transactions.isEmpty()) {
+
+            System.out.println(
+                "No transactions recorded yet."
+            );
+
+            return;
+        }
+
+        System.out.printf(
+            "%-12s %-10s %-8s %12s %12s%n",
+            "DATE",
+            "SYMBOL",
+            "TYPE",
+            "QUANTITY",
+            "PRICE"
+        );
+
+        System.out.println(
+            "----------------------------------------------------------"
+        );
+
+        for (Transaction transaction : transactions) {
+
+            System.out.printf(
+                "%-12s %-10s %-8s %12s %12s%n",
+                transaction.getDate(),
+                transaction.getSymbol(),
+                transaction.getType(),
+                transaction.getQuantity().toPlainString(),
+                transaction.getPrice().toPlainString()
+            );
+        }
+
+        System.out.println();
+        System.out.println(
+            "Total transactions: " +
+            transactions.size()
+        );
+    }
+
     private static String readSymbol(Scanner scanner) {
 
         String symbol = readInput(
@@ -194,6 +270,7 @@ public final class Main {
         ).toUpperCase(Locale.ROOT);
 
         if (symbol.isBlank()) {
+
             throw new IllegalArgumentException(
                 "Stock symbol is required."
             );
@@ -202,7 +279,6 @@ public final class Main {
         return symbol;
     }
 
-    // Read a positive financial number
     private static BigDecimal readPositiveDecimal(
             Scanner scanner,
             String prompt) {
@@ -232,7 +308,6 @@ public final class Main {
         return value;
     }
 
-    // Read input safely, including end-of-input
     private static String readInput(
             Scanner scanner,
             String prompt) {
@@ -249,7 +324,8 @@ public final class Main {
         return scanner.nextLine().trim();
     }
 
-    private static void viewHoldings(Portfolio portfolio) {
+    private static void viewHoldings(
+            Portfolio portfolio) {
 
         Map<String, BigDecimal> positions =
                 portfolio.positions();
