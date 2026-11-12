@@ -1,4 +1,4 @@
-# Java Portfolio Manager
+# Portfolio Manager
 
 A Java-based investment portfolio management application for tracking stock holdings, recording transactions, calculating portfolio valuations and analysing realised and unrealised profit and loss.
 
